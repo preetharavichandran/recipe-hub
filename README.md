@@ -11,7 +11,8 @@ docker compose up --build
 ```
 
 API: `http://localhost:8080`  
-OpenAPI (Development): `http://localhost:8080/openapi/v1.json`  
+**API docs (Scalar):** `http://localhost:8080/scalar` (Development)  
+OpenAPI JSON: `http://localhost:8080/openapi/v1.json`  
 Health: `GET /health`
 
 Default publish mode is **console** (CloudEvents printed by the outbox dispatcher).

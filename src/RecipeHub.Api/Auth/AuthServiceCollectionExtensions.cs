@@ -1,6 +1,7 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 
 namespace RecipeHub.Api.Auth;
 
@@ -57,7 +58,33 @@ public static class AuthServiceCollectionExtensions
 
     public static IServiceCollection AddRecipeHubOpenApi(this IServiceCollection services)
     {
-        services.AddOpenApi();
+        services.AddOpenApi(options =>
+        {
+            options.AddDocumentTransformer((document, _, _) =>
+            {
+                document.Info = new()
+                {
+                    Title = "RecipeHub API",
+                    Version = "v1",
+                    Description =
+                        "Life Atlas ingredient catalog and recipe producer. " +
+                        "Writes require Bearer JWT (DevToken locally) and Idempotency-Key on POST/PUT/PATCH /recipes."
+                };
+
+                document.Components ??= new();
+                document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
+                document.Components.SecuritySchemes["Bearer"] = new OpenApiSecurityScheme
+                {
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    BearerFormat = "JWT",
+                    Description =
+                        "Paste a DevToken JWT (./scripts/dev-token.sh) or Google ID token. Do not include the 'Bearer ' prefix."
+                };
+
+                return Task.CompletedTask;
+            });
+        });
         return services;
     }
 }

@@ -3,6 +3,7 @@ using RecipeHub.Api.Endpoints;
 using RecipeHub.Application.DependencyInjection;
 using RecipeHub.Infrastructure.DependencyInjection;
 using RecipeHub.Infrastructure.Messaging;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,6 +36,14 @@ app.UseAuthorization();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference(options =>
+    {
+        options
+            .WithTitle("RecipeHub")
+            .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
+    });
+    app.MapGet("/", () => Results.Redirect("/scalar"))
+        .ExcludeFromDescription();
 }
 
 app.MapRecipeHubEndpoints();
