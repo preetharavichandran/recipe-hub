@@ -1,0 +1,15 @@
+# Build
+**/bin/
+**/obj/
+**/.vs/
+**/.idea/
+*.user
+*.suo
+
+# Secrets / local overrides
+**/appsettings.*.local.json
+.env
+.env.*
+
+# OS
+.DS_Store

@@ -1,0 +1,80 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: recipehub
+      POSTGRES_PASSWORD: recipehub
+      POSTGRES_DB: recipehub
+    ports:
+      - "5433:5432"
+    volumes:
+      - recipehub_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U recipehub -d recipehub"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Optional: docker compose --profile kafka up --build
+  # Then set PUBLISH_MODE=kafka (default below when profile is used via override env).
+  redpanda:
+    profiles: ["kafka"]
+    image: redpandadata/redpanda:v24.3.1
+    command:
+      - redpanda
+      - start
+      - --overprovisioned
+      - --smp
+      - "1"
+      - --memory
+      - 512M
+      - --reserve-memory
+      - 0M
+      - --node-id
+      - "0"
+      - --check=false
+      - --kafka-addr
+      - internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr
+      - internal://redpanda:9092,external://localhost:19092
+    ports:
+      - "19092:19092"
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy'"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Default: Host=db;Port=5432;Database=recipehub;Username=recipehub;Password=recipehub
+      Authentication__Mode: Development
+      Authentication__AdminSubs__0: dev-admin
+      Authentication__DevelopmentSigningKey: RecipeHub-Dev-Signing-Key-At-Least-32-Chars!
+      Authentication__DevelopmentIssuer: recipehub-dev
+      Authentication__DevelopmentAudience: recipehub
+      Retention__SoftDeleteRetentionDays: "90"
+      Retention__PurgeIntervalHours: "24"
+      PUBLISH_MODE: ${PUBLISH_MODE:-console}
+      Publishing__DispatcherIntervalSeconds: "2"
+      Publishing__MaxPublishAttempts: "5"
+      Publishing__Kafka__BootstrapServers: redpanda:9092
+      Publishing__Kafka__Topic: lifeatlas.recipes
+      Publishing__Sns__TopicArn: ${SNS_TOPIC_ARN:-}
+      Publishing__Sns__Region: ${AWS_REGION:-eu-west-1}
+      Publishing__Sns__ServiceUrl: ${SNS_SERVICE_URL:-}
+      Publishing__Sns__AccessKey: ${AWS_ACCESS_KEY_ID:-}
+      Publishing__Sns__SecretKey: ${AWS_SECRET_ACCESS_KEY:-}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  recipehub_pg:

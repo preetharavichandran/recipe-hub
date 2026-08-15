@@ -1,0 +1,7 @@
+##ignore
+**/bin/
+**/obj/
+**/.vs/
+**/.idea/
+**/*.user
+**/appsettings.*.local.json
